@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora MutterDarck</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .ojillo-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #ff0000;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        /* ESTILOS PARA IMPRESIÓN */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            .shadow-xl, .shadow-lg, .shadow-inner {
+                box-shadow: none !important;
+            }
+            .border {
+                border-color: #000 !important;
+            }
+            /* Asegurar que la tabla se vea bien en papel */
+            #resumen-container {
+                width: 100%;
+                max-width: 100%;
+                border: none;
+            }
+            /* Ajustes de color para ahorrar tinta */
+            .bg-slate-800, .bg-indigo-900 {
+                background-color: white !important;
+                color: black !important;
+                border-bottom: 2px solid black;
+            }
+            .text-white {
+                color: black !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-8 px-4 transition-colors">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+        <!-- Calculadora Principal (Se oculta al imprimir) -->
+        <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-200 no-print">
+            <div class="bg-slate-800 p-6 text-white flex justify-between items-center border-b border-slate-700">
+                <div>
+                    <h1 class="text-2xl font-bold">Calculadora de Plotter</h1>
+                    <p class="text-slate-400 text-sm">MutterDarck Tools | Uso Interno</p>
+                </div>
+                <div class="text-right">
+                    <span id="current-date" class="text-[11px] bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-lg font-bold uppercase tracking-wider text-slate-300">
+                        <!-- Fecha se carga aquí -->
+                    </span>
+                </div>
+            </div>
+
+            <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Formulario -->
+                <div class="space-y-5">
+                    <!-- Material y Resolución -->
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label for="material" class="block text-xs font-bold text-gray-500 uppercase mb-1">Materiales</label>
+                            <select id="material" aria-label="Seleccionar material" class="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-slate-500 outline-none transition-shadow" onchange="updateResolutionOptions()">
+                                <!-- Se llena con JS -->
+                            </select>
+                        </div>
+                        <div>
+                            <label for="resolucion" class="block text-xs font-bold text-gray-500 uppercase mb-1">Resolución</label>
+                            <select id="resolucion" aria-label="Seleccionar resolución" class="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-slate-500 outline-none transition-shadow" onchange="calcular()">
+                                <!-- Se llena con JS -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Dimensiones y Piezas -->
+                    <div class="flex flex-row items-end gap-3">
+                        <div class="w-20">
+                            <label for="piezas" class="block text-xs font-bold text-gray-500 uppercase mb-1">Piezas</label>
+                            <input type="number" id="piezas" value="0" min="1" aria-label="Cantidad de piezas" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-slate-500 text-center" oninput="calcular()" onfocus="this.select()">
+                        </div>
+                        
+                        <div class="flex-1">
+                            <label for="base" class="block text-xs font-bold text-gray-500 uppercase mb-1">Base (cm)</label>
+                            <input type="number" id="base" value="0" min="1" aria-label="Base en centímetros" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-slate-500 text-center" oninput="calcular()" onfocus="this.select()">
+                        </div>
+
+                        <div class="pb-3 text-gray-400 font-bold self-end text-xl">×</div>
+
+                        <div class="flex-1">
+                            <label for="altura" class="block text-xs font-bold text-gray-500 uppercase mb-1">Altura (cm)</label>
+                            <input type="number" id="altura" value="0" min="1" aria-label="Altura en centímetros" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-slate-500 text-center" oninput="calcular()" onfocus="this.select()">
+                        </div>
+                    </div>
+
+                    <!-- Acabados -->
+                    <div class="space-y-3">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo de Acabado</label>
+                        <div class="grid grid-cols-1 gap-3">
+                            <div class="flex items-center p-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white transition-colors cursor-pointer group">
+                                <input type="radio" name="tipo_acabado" id="acabado_ninguno" value="0" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500" onchange="calcular()" checked>
+                                <label for="acabado_ninguno" class="ml-3 flex-1 cursor-pointer">
+                                    <span class="block text-sm font-semibold text-gray-700">Sin acabados o Corte al Ras</span>
+                                    <span class="block text-[10px] text-gray-400 italic">Medida exacta del archivo.</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center p-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white transition-colors cursor-pointer group">
+                                <input type="radio" name="tipo_acabado" id="acabado_ojillos" value="8" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500" onchange="calcular()">
+                                <label for="acabado_ojillos" class="ml-3 flex-1 cursor-pointer">
+                                    <span class="block text-sm font-semibold text-gray-700">Doblez y Ojillos (+8 cm)</span>
+                                    <span class="block text-[10px] text-gray-400 italic">Agrega 4 cm por cada lado.</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center p-3 border border-gray-200 rounded-xl bg-gray-50 hover:bg-white transition-colors cursor-pointer group">
+                                <input type="radio" name="tipo_acabado" id="acabado_reforzado" value="16" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500" onchange="calcular()">
+                                <label for="acabado_reforzado" class="ml-3 flex-1 cursor-pointer">
+                                    <span class="block text-sm font-semibold text-gray-700">Dobladillo Reforzado (+16 cm)</span>
+                                    <span class="block text-[10px] text-gray-400 italic">Agrega 8 cm por cada lado para refuerzo extra.</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resultados Detallados -->
+                    <div class="space-y-2 text-sm pt-4 border-t border-gray-100">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 font-medium" id="info-medida-final">Medida final cobrada: 100x100 cm</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 italic" id="area-real-label">Área real: 1.00 m²</span>
+                            <span id="minimo-aplicado" class="hidden text-white font-bold text-[10px] uppercase tracking-wider bg-red-600 px-2 py-1 rounded shadow-sm border border-red-700 animate-pulse">
+                                Mínimo aplicado (1m²)
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Costo por m²:</span>
+                            <span id="costo-m2-label" class="font-medium text-slate-700">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen y Visual -->
+                <div class="flex flex-col space-y-6">
+                    <!-- Tarjeta de Totales -->
+                    <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 shadow-inner">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-500">Subtotal:</span>
+                                <span id="subtotal-label" class="font-semibold text-slate-700">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-500">IVA (16%):</span>
+                                <span id="iva-label" class="font-semibold text-slate-700">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center pt-4 border-t border-slate-200">
+                                <div>
+                                    <p class="text-slate-800 font-bold text-xl uppercase leading-none">Total Neto</p>
+                                    <p class="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mt-1">Precio Final</p>
+                                </div>
+                                <span id="precio-neto" class="text-3xl font-black text-indigo-600">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="agregarALista()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Agregar
+                        </button>
+                        <button onclick="borrarTodo()" class="bg-white hover:bg-red-50 text-red-600 border border-red-200 font-bold py-3 px-4 rounded-xl shadow transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Limpiar
+                        </button>
+                    </div>
+
+                    <!-- Preview Visual -->
+                    <div class="flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-2xl bg-white relative min-h-[180px]">
+                        <span class="absolute top-2 left-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Esquema Proporcional</span>
+                        <div id="lona-preview" class="bg-gray-100 border-2 border-slate-400 shadow-md relative flex items-center justify-center transition-all duration-300">
+                            <div id="ojillos-container" class="absolute inset-0 pointer-events-none"></div>
+                            <span id="lona-dims" class="text-[9px] text-slate-500 font-bold text-center p-2 z-10"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Encabezado SOLO para impresión -->
+        <div class="hidden print-only mb-6 text-center border-b-2 border-black pb-4">
+            <h1 class="text-3xl font-bold uppercase"></h1>
+            <p class="text-sm text-gray-600">Cotización</p>
+            <p id="print-date" class="text-xs mt-2"></p>
+        </div>
+
+        <!-- Lista de Cotización -->
+        <div id="resumen-container" class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-200">
+            <div class="bg-indigo-900 p-4 text-white flex justify-between items-center print:bg-white print:text-black print:border-b-2 print:border-black">
+                <h2 class="font-bold flex items-center gap-2 uppercase tracking-wider text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 no-print" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                    Resumen de Productos
+                </h2>
+                <span id="items-count" class="text-[10px] bg-indigo-700 px-2 py-1 rounded font-bold print:hidden">0 PRODUCTOS</span>
+                
+                <!-- Botón Imprimir -->
+                <button onclick="window.print()" class="no-print bg-white text-indigo-900 px-3 py-1 rounded text-xs font-bold hover:bg-indigo-50 transition-colors flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Imprimir Nota
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto custom-scroll max-h-[400px] print:max-h-none print:overflow-visible">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-200 print:bg-gray-100 print:text-black">
+                            <th class="p-4">Cant.</th>
+                            <th class="p-4">Descripción / Material</th>
+                            <th class="p-4">Medidas</th>
+                            <th class="p-4">P. Unit</th>
+                            <th class="p-4 text-right">Importe</th>
+                            <th class="p-4 w-10 no-print"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-items">
+                        <tr id="empty-row">
+                            <td colspan="6" class="p-10 text-center text-slate-400 italic text-sm">
+                                No hay ítems en la lista.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Total de la Nota -->
+            <div class="bg-slate-50 p-6 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 print:bg-white print:border-t-2 print:border-black">
+                <div class="text-[10px] text-slate-400 max-w-sm italic print:text-gray-600">
+                    Derechos Reservados Mutter Tools Company | Los precios pueden variar sin previo aviso. 
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="text-right">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase print:text-black">Total de la Nota</p>
+                        <p id="gran-total" class="text-3xl font-black text-slate-800 print:text-black">$0.00</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="p-4 text-center no-print">
+            <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest">Derechos Reservados Mutter Tools Company</p>
+        </div>
+    </div>
+
+    <script>
+        const materialesData = [
+            { nombre: "Lona Brillante 13 onzas", precios: { "720": 70, "1200": 80, "1440": 120 } },
+            { nombre: "Lona Brillante laminado c/pintarron", precios: { "720": 320, "1200": 350, "1440": 420 } },
+            { nombre: "Lona Back Light", precios: { "720": 160, "1200": 175, "1440": 225 } },
+            { nombre: "Lona Mate", precios: { "720": 90, "1200": 100, "1440": 145 } },
+            { nombre: "Lona Mesh", precios: { "720": 162, "1200": 172, "1440": 200 } },
+            { nombre: "Lona Mate con Respaldo Negro", precios: { "720": 110, "1200": 120, "1440": 150 } },
+            { nombre: "Lona Black Out", precios: { "720": 150, "1200": 180, "1440": 240 } },
+            { nombre: "Vinil Brillante", precios: { "1200": 135, "1440": 187 } },
+            { nombre: "Vinil Mate", precios: { "1200": 145, "1440": 209 } },
+            { nombre: "Vinil Transparente", precios: { "1200": 145, "1440": 209 } },
+            { nombre: "Vinil Microperforado", precios: { "1200": 209, "1440": 287 } },
+            { nombre: "Vinil 3M", precios: { "1200": 250, "1440": 300 } },
+            { nombre: "Vinil Brillante Laminado", precios: { "1200": 332, "1440": 388 } },
+            { nombre: "Vinil Mate Laminado", precios: { "1200": 345, "1440": 405 } },
+            { nombre: "Vinil Brillante con Corte a Registro", precios: { "1200": 235, "1440": 287 } },
+            { nombre: "Vinil Mate con Corte a Registro", precios: { "1200": 245, "1440": 309 } },
+            { nombre: "Vinil Mate con Corte a Registro y Transfer", precios: { "1200": 291, "1440": 356 } },
+            { nombre: "Vinil Transparente con Corte a Registro", precios: { "1200": 245, "1440": 309 } },
+            { nombre: "Vinil con Respaldo Gris", precios: { "1200": 176, "1440": 231 } },
+            { nombre: "Vinil Laminado con Pintarron", precios: { "1200": 370, "1440": 410 } },
+            { nombre: "Vinil Transparente Fondeado en Blanco", precios: { "1200": 350, "1440": 420 } },
+            { nombre: "Vinil Laminado con Floor Graphic", precios: { "1200": 388, "1440": 495 } },
+            { nombre: "Vinil Laminado con Floor Graphic y Corte a Registro", precios: { "1200": 488, "1440": 650 } },
+            { nombre: "Vinil LG", precios: { "1200": 145, "1440": 245 } },            
+            { nombre: "Papel Blue Back", precios: { "1200": 120, "1440": 160 } },
+            { nombre: "Papel Fotoglossy", precios: { "1440": 320 } },
+            { nombre: "Papel City Light", precios: { "1200": 130, "1440": 180 } },
+            { nombre: "Papel Sintetico Texturizado", precios: { "1200": 190, "1440": 220 } },
+            { nombre: "Pelicula Back Light", precios: { "1440": 330 } },
+            { nombre: "Electrostatico Transparente", precios: { "1200": 190, "1440": 241 } },
+            { nombre: "Electrostatico Blanco", precios: { "1200": 190, "1440": 241 } },
+            { nombre: "Electrostatico Transparente Fondeado en Blanco", precios: { "1200": 430, "1440": 495 } },
+            { nombre: "Tela Banner", precios: { "1440": 320 } },
+            { nombre: "Tela Canvas", precios: { "1440": 400 } },
+            { nombre: "Tela", precios: { "Sublimacion": 350 } },
+            { nombre: "Banner 60 x 160 con Estructura", precios: { "1200": 350, "1440": 380 } },
+            { nombre: "Banner 80 x 180 con Estructura", precios: { "1200": 450, "1440": 475 } },
+            { nombre: "Recorte de Vinil ", precios: { "60 cm": 180, "120 cm": 330 } },
+            { nombre: "Recorte de Vinil Depilado y Transfer ", precios: { "60 cm": 380, "120 cm": 480 } },
+            { nombre: "Vinil Esmerilado", precios: { "120 cm": 450 } },
+            { nombre: "Roll Up", precios: { "1440": 750 } },
+        ];
+
+        let cotizacionItems = [];
+        let totalNetoActual = 0;
+
+        function updateDate() {
+            const dateStr = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('current-date').innerText = dateStr;
+            document.getElementById('print-date').innerText = "Fecha de impresión: " + dateStr;
+        }
+
+        function init() {
+            updateDate();
+            loadFromStorage(); // Cargar datos guardados
+            const selectMat = document.getElementById('material');
+            materialesData.forEach((m, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = m.nombre;
+                selectMat.appendChild(opt);
+            });
+            updateResolutionOptions();
+        }
+
+        function updateResolutionOptions() {
+            const materialIdx = document.getElementById('material').value;
+            const resSelect = document.getElementById('resolucion');
+            const availablePrecios = materialesData[materialIdx].precios;
+            const currentVal = resSelect.value;
+            resSelect.innerHTML = '';
+            
+            Object.keys(availablePrecios).forEach(res => {
+                const opt = document.createElement('option');
+                opt.value = res;
+                opt.textContent = isNaN(res) ? res : res + " dpi";
+                resSelect.appendChild(opt);
+            });
+
+            if(availablePrecios[currentVal]) resSelect.value = currentVal;
+            calcular();
+        }
+
+        function calcular() {
+            const materialIdx = document.getElementById('material').value;
+            const resolucion = document.getElementById('resolucion').value;
+            
+            let piezas = parseInt(document.getElementById('piezas').value);
+            if(isNaN(piezas) || piezas < 1) piezas = 1;
+            
+            let baseOriginal = parseFloat(document.getElementById('base').value);
+            if(isNaN(baseOriginal) || baseOriginal < 0.1) baseOriginal = 0.1;
+
+            let alturaOriginal = parseFloat(document.getElementById('altura').value);
+            if(isNaN(alturaOriginal) || alturaOriginal < 0.1) alturaOriginal = 0.1;
+            
+            const extraDimension = parseFloat(document.querySelector('input[name="tipo_acabado"]:checked').value);
+
+            const baseFinal = baseOriginal + extraDimension;
+            const alturaFinal = alturaOriginal + extraDimension;
+
+            const precioM2 = materialesData[materialIdx].precios[resolucion] || 0;
+            
+            const m2Unitario = (baseFinal * alturaFinal) / 10000;
+            const m2Totales = m2Unitario * piezas;
+
+            let subtotal;
+            const minimoIndicador = document.getElementById('minimo-aplicado');
+            
+            // Lógica de mínimo aplicada al total de la partida
+            if (m2Totales < 1) {
+                subtotal = precioM2; 
+                minimoIndicador.classList.remove('hidden');
+            } else {
+                subtotal = m2Totales * precioM2;
+                minimoIndicador.classList.add('hidden');
+            }
+
+            const iva = subtotal * 0.16;
+            totalNetoActual = subtotal + iva;
+
+            document.getElementById('info-medida-final').innerText = `Medida final cobrada: ${baseFinal.toFixed(1)}x${alturaFinal.toFixed(1)} cm`;
+            document.getElementById('costo-m2-label').innerText = `$${precioM2.toFixed(2)}`;
+            document.getElementById('area-real-label').innerText = `Área real: ${m2Totales.toFixed(2)} m²`;
+            
+            document.getElementById('subtotal-label').innerText = `$${subtotal.toFixed(2)}`;
+            document.getElementById('iva-label').innerText = `$${iva.toFixed(2)}`;
+            document.getElementById('precio-neto').innerText = `$${totalNetoActual.toFixed(2)}`;
+
+            drawPreview(baseFinal, alturaFinal, extraDimension);
+            return { subtotal, totalNetoActual, materialIdx, resolucion, piezas, baseFinal, alturaFinal, m2Totales };
+        }
+
+        function agregarALista() {
+            const data = calcular();
+            const materialNombre = materialesData[data.materialIdx].nombre;
+            const acabadoText = document.querySelector('input[name="tipo_acabado"]:checked').nextElementSibling.querySelector('span').innerText;
+
+            const item = {
+                id: Date.now(),
+                piezas: data.piezas,
+                descripcion: `${materialNombre} (${data.resolucion} dpi) - ${acabadoText}`,
+                medidas: `${data.baseFinal.toFixed(0)}x${data.alturaFinal.toFixed(0)} cm`,
+                precioUnit: (data.totalNetoActual / data.piezas),
+                importe: data.totalNetoActual
+            };
+
+            cotizacionItems.push(item);
+            saveToStorage(); // Guardar cambios
+            renderLista();
+        }
+
+        function eliminarItem(id) {
+            cotizacionItems = cotizacionItems.filter(item => item.id !== id);
+            saveToStorage(); // Guardar cambios
+            renderLista();
+        }
+
+        function borrarTodo() {
+            if(!confirm("¿Estás seguro de borrar toda la lista actual?")) return;
+            
+            cotizacionItems = [];
+            saveToStorage(); // Guardar cambios
+            renderLista();
+
+            // Reiniciar Inputs
+            document.getElementById('material').selectedIndex = 0;
+            document.getElementById('piezas').value = 0;
+            document.getElementById('base').value = 0;
+            document.getElementById('altura').value = 0;
+            document.getElementById('acabado_ninguno').checked = true;
+            
+            updateResolutionOptions(); 
+            totalNetoActual = 0;
+        }
+
+        function renderLista() {
+            const tbody = document.getElementById('lista-items');
+            const itemsCount = document.getElementById('items-count');
+            const granTotalLabel = document.getElementById('gran-total');
+            
+            tbody.innerHTML = '';
+            let sumaTotal = 0;
+
+            if (cotizacionItems.length === 0) {
+                tbody.innerHTML = `
+                    <tr id="empty-row">
+                        <td colspan="6" class="p-10 text-center text-slate-400 italic text-sm">
+                            No hay ítems en la lista.
+                        </td>
+                    </tr>`;
+            } else {
+                cotizacionItems.forEach(item => {
+                    sumaTotal += item.importe;
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-100 hover:bg-slate-50 transition-colors group print:border-slate-300";
+                    tr.innerHTML = `
+                        <td class="p-4 text-sm font-bold text-slate-700">${item.piezas}</td>
+                        <td class="p-4">
+                            <div class="text-sm font-semibold text-slate-800">${item.descripcion}</div>
+                        </td>
+                        <td class="p-4 text-xs text-slate-500 font-medium">${item.medidas}</td>
+                        <td class="p-4 text-sm text-slate-600">$${item.precioUnit.toFixed(2)}</td>
+                        <td class="p-4 text-sm font-bold text-indigo-600 text-right print:text-black">$${item.importe.toFixed(2)}</td>
+                        <td class="p-4 text-right no-print">
+                            <button onclick="eliminarItem(${item.id})" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Eliminar ítem">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            itemsCount.innerText = `${cotizacionItems.length} PRODUCTOS`;
+            granTotalLabel.innerText = `$${sumaTotal.toFixed(2)}`;
+        }
+
+        // --- FUNCIONES DE ALMACENAMIENTO (Persistencia) ---
+        function saveToStorage() {
+            localStorage.setItem('mutter_cotizacion', JSON.stringify(cotizacionItems));
+        }
+
+        function loadFromStorage() {
+            const data = localStorage.getItem('mutter_cotizacion');
+            if (data) {
+                try {
+                    cotizacionItems = JSON.parse(data);
+                    renderLista();
+                } catch (e) {
+                    console.error("Error cargando datos", e);
+                }
+            }
+        }
+
+        function drawPreview(w, h, extra) {
+            const preview = document.getElementById('lona-preview');
+            const container = document.getElementById('ojillos-container');
+            const label = document.getElementById('lona-dims');
+            container.innerHTML = '';
+
+            const max = 150; 
+            let dw, dh;
+            if(w >= h) {
+                dw = max;
+                dh = (h/w) * max;
+            } else {
+                dh = max;
+                dw = (w/h) * max;
+            }
+
+            preview.style.width = dw + "px";
+            preview.style.height = dh + "px";
+            label.innerText = `${w.toFixed(0)} x ${h.toFixed(0)} cm`;
+
+            if(extra > 0) {
+                const points = [[0,0], [100,0], [0,100], [100,100]];
+                points.forEach(p => {
+                    const dot = document.createElement('div');
+                    dot.className = 'ojillo-dot';
+                    dot.style.left = p[0] + "%";
+                    dot.style.top = p[1] + "%";
+                    container.appendChild(dot);
+                });
+
+                const marginPercentW = ( (extra/2) / w ) * 100;
+                const marginPercentH = ( (extra/2) / h ) * 100;
+                const inner = document.createElement('div');
+                inner.className = 'absolute border border-slate-300 border-dashed pointer-events-none';
+                inner.style.inset = `${marginPercentH}% ${marginPercentW}%`;
+                container.appendChild(inner);
+                preview.classList.add('bg-slate-50');
+            } else {
+                preview.classList.remove('bg-slate-50');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
